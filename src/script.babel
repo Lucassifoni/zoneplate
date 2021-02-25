@@ -87,12 +87,14 @@ const vm = new Vue({
     <svg style="width: 600px;height:600px;background: grey;" viewBox="0 0 400 400">
     <rect style="fill: none; stroke: red;stroke-width:0.25" x="20" y="20" width="360" height="360"/>
     <g v-if="style === 'zp'">
-      <circle v-for="(c, i) in circles" cx="200" cy="200" :r="c" :style="{fill: i % 2 == 0 ? 'white' : 'black'}"/>
+    <rect style="fill: black; stroke: none;" x="20" y="20" width="360" height="360"/>
+      <circle v-for="(c, i) in circles" cx="200" cy="200" :r="c" :style="{fill: i % 2 == 1 ? 'white' : 'black'}"/>
      </g>
      <g v-else>
+      <rect style="fill: black; stroke: none;" x="20" y="20" width="360" height="360"/>
        <g v-for="(c, i) in circles">
          <circle v-for="(b, j) in c"
-                style="fill: black"
+                style="fill: white"
                 :cx="200 + b.dx"
                 :cy="200 + b.dy"
                 :r="b.d"/>
