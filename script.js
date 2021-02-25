@@ -8,7 +8,8 @@ const vm = new Vue({
       point_mul_margin: 9,
       point_off_rand: true,
       wavelength: 550,
-      style: 'zp' };
+      style: 'zp'
+    };
 
   },
   computed: {
@@ -33,18 +34,70 @@ const vm = new Vue({
           const theta = Math.PI * 2 / num_points;
           const offset = !this.point_off_rand ? 0 : Math.random() * Math.PI;
           d_sum += d;
-          return new Array(num_points).fill(1).map((_, i) =>
-          {
+          return new Array(num_points).fill(1).map((_, i) => {
             return {
               dx: d_sum * Math.cos(theta * i + offset),
               dy: d_sum * Math.sin(theta * i + offset),
-              d: d / 2 * i_margin };
-
+              d: d / 2 * i_margin
+            };
           });
         });
       }
-    } },
+    },
+    zp_svg() {
+      return `<g>
+      <rect style="fill: black; stroke: none;" x="20" y="20" width="360" height="360"/>`
+        + this.zp_svg_circles
+        + `</g>`;
+    },
+    zp_svg_circles() {
+      return this.circles.map((c, i) => {
+        return `<circle cx="200" cy="200" r="${c}" style="fill: ${i % 2 == 1 ? 'white' : 'black'}"/>`;
+      }).join("");
+    },
+    mp_svg() {
+      return `<g>
+      <rect style="fill: black; stroke: none;" x="20" y="20" width="360" height="360"/>
+      ` + this.mp_svg_circles +
 
+        + `</g>`
+    },
+    mp_svg_circles() {
+      return this.circles.map((c, i) => {
+        return `
+        <g> ${c.map((b, j) => `<circle
+        style="fill: white"
+        cx="${200 + b.dx}"
+        cy="${200 + b.dy}"
+        r="${b.d}"/>`).join("")}
+        </g>
+      `}).join("")
+    },
+    svg() {
+      return `<svg style="width: 600px;height:600px;background: grey;" viewBox="0 0 400 400">
+      <rect style="fill: none; stroke: red;stroke-width:0.25" x="20" y="20" width="360" height="360"/>`
+        + (this.style === 'zp' ? this.zp_svg : this.mp_svg)
+        + `</svg>`;
+    },
+  },
+  methods: {
+    download() {
+      const i_f = parseInt(this.focal_length, 10);
+      const i_n = parseInt(this.number_of_zones, 10);
+      const i_w = parseInt(this.wavelength, 10);
+      const i_pc = parseInt(this.point_mul_coeff, 10);
+      const i_margin = parseInt(this.point_mul_margin, 10) / 10;
+      const svgData = this.svg;
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = svgUrl;
+      downloadLink.download = `${this.style}_${i_f}_${i_n}_${i_w}_${i_pc}_${i_margin}.svg`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    },
+  },
   template: `
   <div style="display: flex;">
   <div class="editor" style="flex: 0 0 50%">
@@ -84,26 +137,13 @@ const vm = new Vue({
     </div>
   </div>
   <div class="viewer" style="flex: 0 0 50%; padding-left: 1em;">
-    <svg style="width: 600px;height:600px;background: grey;" viewBox="0 0 400 400">
-    <rect style="fill: none; stroke: red;stroke-width:0.25" x="20" y="20" width="360" height="360"/>
-    <g v-if="style === 'zp'">
-    <rect style="fill: black; stroke: none;" x="20" y="20" width="360" height="360"/>
-      <circle v-for="(c, i) in circles" cx="200" cy="200" :r="c" :style="{fill: i % 2 == 1 ? 'white' : 'black'}"/>
-     </g>
-     <g v-else>
-      <rect style="fill: black; stroke: none;" x="20" y="20" width="360" height="360"/>
-       <g v-for="(c, i) in circles">
-         <circle v-for="(b, j) in c"
-                style="fill: white"
-                :cx="200 + b.dx"
-                :cy="200 + b.dy"
-                :r="b.d"/>
-       </g>
-     </g>
-    </svg>
+    <div v-html="svg"> </div>
     <p>
-    Le rectangle rouge représente 3,60*3,60mm sur le fichier final. 
+    Le rectangle rouge représente 36*36mm sur le fichier final. 
     </p>
+    <div class="buttons">
+      <button class="button is-primary" @click="download">Télécharger</download>
+    </div>
   </div>
   </div>
   ` });
