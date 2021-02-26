@@ -17,31 +17,14 @@ const vm = new Vue({
       const i_f = parseInt(this.focal_length, 10);
       const i_n = parseInt(this.number_of_zones, 10);
       const i_w = parseInt(this.wavelength, 10);
-      const i_pc = parseInt(this.point_mul_coeff, 10);
-      const i_margin = parseInt(this.point_mul_margin, 10) / 10;
-      const c = new Array(i_n).fill(1);
-      const diams = c.map((_, i) => {
-        return 2 * Math.sqrt(i_f * i * (i_w / 1000));
+      const c = new Array((i_n * 2) + 1).fill(1);
+      const radiuses = c.map((_, i) => {
+        return Math.sqrt(i_f * (i + 1) * (i_w / 1000));
       }).reverse();
       if (this.style === 'zp') {
-        return diams;
+        return radiuses;
       } else {
-        const dr = diams;
-        let d_sum = 0;
-        return dr.map((d, i) => {
-          if (i === 0) return [{ dx: 0, dy: 0, d: d / 2 * i_margin }];
-          const num_points = Math.floor(i_pc / 10 * i);
-          const theta = Math.PI * 2 / num_points;
-          const offset = !this.point_off_rand ? 0 : Math.random() * Math.PI;
-          d_sum += d;
-          return new Array(num_points).fill(1).map((_, i) => {
-            return {
-              dx: d_sum * Math.cos(theta * i + offset),
-              dy: d_sum * Math.sin(theta * i + offset),
-              d: d / 2 * i_margin
-            };
-          });
-        });
+        return this.mega_pinhole(radiuses);
       }
     },
     zp_svg() {
@@ -52,7 +35,7 @@ const vm = new Vue({
     },
     zp_svg_circles() {
       return this.circles.map((c, i) => {
-        return `<circle cx="200" cy="200" r="${c}" style="fill: ${i % 2 == 1 ? 'white' : 'black'}"/>`;
+        return `<circle cx="200" cy="200" r="${c}" style="fill: ${i % 2 == 0 ? 'white' : 'black'}"/>`;
       }).join("");
     },
     mp_svg() {
@@ -67,11 +50,11 @@ const vm = new Vue({
         return `
         <g> ${c.map((b, j) => `<circle
         style="fill: white"
-        cx="${200 + b.dx}"
-        cy="${200 + b.dy}"
+        cx="${200 - (b.dx)}"
+        cy="${200 - (b.dy)}"
         r="${b.d}"/>`).join("")}
         </g>
-      `}).join("")
+      `}).filter((_, i) => i % 2 === 0).join("")
     },
     svg() {
       return `<svg style="width: 600px;height:600px;background: grey;" viewBox="0 0 400 400">
@@ -81,6 +64,26 @@ const vm = new Vue({
     },
   },
   methods: {
+    mega_pinhole(ra) {
+      let r = ra.reverse();
+      let prev_d = 0;
+      const i_pc = parseInt(this.point_mul_coeff, 10);
+      const i_margin = parseInt(this.point_mul_margin, 10) / 10;
+      let out = [];
+      for (let i = 0; i < r.length; i++) {
+        const num_points = Math.floor(i_pc / 10 * i) + 1;
+        const theta = (Math.PI * 2) / num_points;
+        let nd = r[i] - prev_d;
+        const of = Math.random() * Math.PI;
+        out.push(new Array(num_points).fill(1).map((_, j) => ({
+            dx: prev_d * Math.cos(theta * j + of),
+            dy: prev_d * Math.sin(theta * j + of),
+            d: (nd) * i_margin,
+        })));
+        prev_d = r[i];
+      }
+      return out;
+    },
     download() {
       const i_f = parseInt(this.focal_length, 10);
       const i_n = parseInt(this.number_of_zones, 10);
